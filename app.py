@@ -1,10 +1,8 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify
 from flask_cors import CORS
 import subprocess
 from pydub import AudioSegment
-import sys
 import os
-import shutil
 
 
 app = Flask(__name__)
@@ -131,6 +129,10 @@ def download_by_name():
         return jsonify({'error': 'Failed to process songs'}), 500
 
     return send_file(output_path, as_attachment=True, download_name="combined.mp3")
+
+@app.route("/")
+def index():
+    return render_template("main.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
