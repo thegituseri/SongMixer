@@ -1,84 +1,72 @@
-document.getElementById('download_url_btn').addEventListener('click', async () => {
-    const song1_url = document.getElementById('song1_url').value;
-    const song2_url = document.getElementById('song2_url').value;
-    const status = document.getElementById('status');
+// helper: handle the common flow for both URL- and Name-based downloads
+async function combineSongs(postUrl, payload) {
+  const status = document.getElementById('status');
+  status.textContent = 'Processing...';
 
-    if (!song1_url || !song2_url) {
-        status.textContent = 'Please enter both URLs';
-        return;
+  try {
+    // kick off server processing
+    const res = await fetch(postUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      status.textContent = `Error: ${json.error}`;
+      return;
     }
 
-    status.textContent = 'Processing...';
+    status.textContent = 'Processing complete! Preparing download link…';
 
-    try {
-        const response = await fetch('/download_by_url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ song1_url, song2_url })
-        });
+    // fetch the combined file
+    const fileRes = await fetch('/download');
+    const blob = await fileRes.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
 
-        if (!response.ok) {
-            const error = await response.json();
-            status.textContent = `Error: ${error.error}`;
-            return;
-        }
+    // configure the existing link
+    const dlLink = document.getElementById('download-link');
+    dlLink.href = blobUrl;
+    dlLink.download = 'combined.mp3';
+    dlLink.style.display = 'inline-block';
 
-        // Trigger file download
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'combined.mp3';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+    // when the user clicks it, we revoke the URL afterwards
+    dlLink.addEventListener('click', () => {
+      // slight delay so the download has started
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    }, { once: true });
 
-        status.textContent = 'Download complete!';
-    } catch (error) {
-        status.textContent = `Error: ${error.message}`;
-    }
+    status.textContent = 'Ready! Click the download button below.';
+  } catch (err) {
+    status.textContent = `Error: ${err.message}`;
+  }
+}
+
+// URL-based handler
+document.getElementById('download_url_btn').addEventListener('click', () => {
+  const dlLink = document.getElementById('download-link');
+  dlLink.style.display = 'none'; // hide the link until we have a valid one
+  const song1 = document.getElementById('song1_url').value.trim();
+  const song2 = document.getElementById('song2_url').value.trim();
+  const status = document.getElementById('status');
+
+  if (!song1 || !song2) {
+    status.textContent = 'Please enter both URLs';
+    return;
+  }
+  combineSongs('/download_by_url', { song1_url: song1, song2_url: song2 });
 });
 
-document.getElementById('download_name_btn').addEventListener('click', async () => {
-    const song1_name = document.getElementById('song1_name').value;
-    const song2_name = document.getElementById('song2_name').value;
-    const status = document.getElementById('status');
+// Name-based handler
+document.getElementById('download_name_btn').addEventListener('click', () => {
+  const dlLink = document.getElementById('download-link');
+  dlLink.style.display = 'none'; // hide the link until we have a valid one
+  const song1 = document.getElementById('song1_name').value.trim();
+  const song2 = document.getElementById('song2_name').value.trim();
+  const status = document.getElementById('status');
 
-    if (!song1_name || !song2_name) {
-        status.textContent = 'Please enter both song names';
-        return;
-    }
-
-    status.textContent = 'Processing...';
-
-    try {
-        const response = await fetch('/download_by_name', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ song1_name, song2_name })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            status.textContent = `Error: ${error.error}`;
-            return;
-        }
-
-        // Trigger file download
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'combined.mp3';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-
-        status.textContent = 'Download complete!';
-    } catch (error) {
-        status.textContent = `Error: ${error.message}`;
-    }
+  if (!song1 || !song2) {
+    status.textContent = 'Please enter both song names';
+    return;
+  }
+  combineSongs('/download_by_name', { song1_name: song1, song2_name: song2 });
 });
-
