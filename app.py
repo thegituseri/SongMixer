@@ -4,7 +4,6 @@ import subprocess
 from pydub import AudioSegment
 import os
 
-
 app = Flask(__name__)
 CORS(app)  # Allow CORS for frontend requests
 
@@ -103,7 +102,9 @@ def download_by_url():
     if not process_songs(song1_path, song2_path, output_path):
         return jsonify({'error': 'Failed to process songs'}), 500
 
-    return send_file(output_path, as_attachment=True, download_name="combined.mp3")
+    return jsonify({'message': 'Songs processed successfully'}), 200
+
+    #return send_file(output_path, as_attachment=True, download_name="combined.mp3")
 
 @app.route('/download_by_name', methods=['POST'])
 def download_by_name():
@@ -127,8 +128,14 @@ def download_by_name():
     # Process and combine
     if not process_songs(song1_path, song2_path, output_path):
         return jsonify({'error': 'Failed to process songs'}), 500
+    return jsonify({'message': 'Songs processed successfully'}), 200
+    #return send_file(output_path, as_attachment=True, download_name="combined.mp3")
 
+@app.route('/download', methods=['GET'])
+def get_file():
+    output_path = os.path.join(OUTPUT_DIR, "combined.mp3")
     return send_file(output_path, as_attachment=True, download_name="combined.mp3")
+
 
 @app.route("/")
 def index():
